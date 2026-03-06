@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Builder
-        uses: useblacksmith/setup-docker-builder@v1
+        uses: docker/setup-buildx-action@v1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -51,13 +51,14 @@ jobs:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
+          image="$(echo "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
           tags=()
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            tags+=("${IMAGE}:main-amd64")
+            tags+=("${image}:main-amd64")
           fi
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             version="${GITHUB_REF#refs/tags/v}"
-            tags+=("${IMAGE}:${version}-amd64")
+            tags+=("${image}:${version}-amd64")
           fi
           if [[ ${#tags[@]} -eq 0 ]]; then
             echo "::error::No amd64 tags resolved for ref ${GITHUB_REF}"
@@ -92,7 +93,7 @@ jobs:
 
       - name: Build and push amd64 image
         id: build
-        uses: useblacksmith/build-push-action@v2
+        uses: docker/build-push-action@v2
         with:
           context: .
           platforms: linux/amd64
@@ -114,7 +115,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Builder
-        uses: useblacksmith/setup-docker-builder@v1
+        uses: docker/setup-buildx-action@v1
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -130,13 +131,14 @@ jobs:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
+          image="$(echo "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
           tags=()
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            tags+=("${IMAGE}:main-arm64")
+            tags+=("${image}:main-arm64")
           fi
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             version="${GITHUB_REF#refs/tags/v}"
-            tags+=("${IMAGE}:${version}-arm64")
+            tags+=("${image}:${version}-arm64")
           fi
           if [[ ${#tags[@]} -eq 0 ]]; then
             echo "::error::No arm64 tags resolved for ref ${GITHUB_REF}"
@@ -171,7 +173,7 @@ jobs:
 
       - name: Build and push arm64 image
         id: build
-        uses: useblacksmith/build-push-action@v2
+        uses: docker/build-push-action@v2
         with:
           context: .
           platforms: linux/arm64
@@ -182,7 +184,7 @@ jobs:
 
   # Create multi-platform manifest
   create-manifest:
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     permissions:
       packages: write
       contents: read
@@ -205,15 +207,16 @@ jobs:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
           set -euo pipefail
+          image="$(echo "${IMAGE}" | tr '[:upper:]' '[:lower:]')"
           tags=()
           if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
-            tags+=("${IMAGE}:main")
+            tags+=("${image}:main")
           fi
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             version="${GITHUB_REF#refs/tags/v}"
-            tags+=("${IMAGE}:${version}")
+            tags+=("${image}:${version}")
             if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9]+)?$ ]]; then
-              tags+=("${IMAGE}:latest")
+              tags+=("${image}:latest")
             fi
           fi
           if [[ ${#tags[@]} -eq 0 ]]; then
